@@ -24,28 +24,30 @@ class FasterRCNN(nn.Module):
         self.num_classes = num_classes
         self.visualize = visualize
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-        self.backbone = self.build_backbone(self.in_size)
-        self.rpn = RPN(512, 512, 9).to(self.device)
+        # self.backbone = self.build_backbone()
+        self.backbone = VGG('A', self.num_classes).to(self.device)
+        self.rpn = RPN(512, 512, self.in_size, 9).to(self.device)
 
     def build_backbone(self):
         in_h, in_w = self.in_size[0], self.in_size[1]
         model = VGG('A', self.num_classes).to(self.device)
         # model = models.vgg16(pretrained=True).to(self.device)
-        features = list(model.features)
+        # features = list(model.features)
+        #
+        # dummy_img = torch.zeros((1, 3, in_h, in_w)).float()
+        # req_features = []
+        # dummy = dummy_img.clone().to(self.device)
+        #
+        # for feature in features:
+        #     dummy = feature(dummy)
+        #
+        #     if dummy.size()[2] < 800 // 16:
+        #         break
+        #     req_features.append(feature)
+        #     out_dim = dummy.size()[1]
 
-        dummy_img = torch.zeros((1, 3, in_h, in_w)).float()
-        req_features = []
-        dummy = dummy_img.clone().to(self.device)
-
-        for feature in features:
-            dummy = feature(dummy)
-
-            if dummy.size()[2] < 800 // 16:
-                break
-            req_features.append(feature)
-            out_dim = dummy.size()[1]
-
-        return nn.Sequential(*req_features)
+        # return nn.Sequential(*req_features)
+        return model
 
     def build_detector(self, in_, anchor_box, roi, gt):
         ious = calculate_ious(anchor_box, gt)

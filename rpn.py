@@ -29,7 +29,6 @@ class RPN(nn.Module):
     def forward(self, x):
         x = self.conv(x)
 
-        x = x.view(x.size(0), -1)
         reg = self.reg_layer(x)
         cls = self.cls_layer(x)
 
@@ -87,7 +86,7 @@ def anchor_box_generator(ratios, scales, input_size, anchor_stride):
                 if r < 1:
                     h, w = s, s * (1. / r)
                 elif r > 1:
-                    h, w = s * r, s
+                    h, w = s * (1. / r), s
                 else:
                     h, w = s, s
 
@@ -107,8 +106,8 @@ def anchor_box_generator(ratios, scales, input_size, anchor_stride):
     return anchor_boxes
 
 
-def anchor_target_generator(anchors, ground_truth, pos_threshold, neg_threshold):
-    ious_anc_gt = calculate_ious(anchors, ground_truth)
+def anchor_target_generator(anchor_boxes, ground_truth, pos_threshold, neg_threshold):
+    ious_anc_gt = calculate_ious(anchor_boxes, ground_truth)
 
     pos_args_ious_anc_gt_1 = np.argmax(ious_anc_gt, axis=0)
     pos_args_ious_anc_gt_2 = np.where(ious_anc_gt >= pos_threshold)[0]
@@ -116,18 +115,18 @@ def anchor_target_generator(anchors, ground_truth, pos_threshold, neg_threshold)
     pos_args_ious_anc_gt = np.array(list(set(pos_args_ious_anc_gt)))
 
     # anchor_labels = np.zeros(anchors.shape[0])
-    anchor_labels = np.array([-1 for _ in range(anchors.shape[0])])
+    anchor_labels = np.array([0 for _ in range(anchor_boxes.shape[0])])
     anchor_labels[pos_args_ious_anc_gt] = 1
 
     non_pos_args_labels = np.where(anchor_labels != 1)[0]
     for i in non_pos_args_labels:
         neg_f = False
         for j in range(len(ground_truth)):
-            if ious_anc_gt[i, j] >= 0.3:
+            if ious_anc_gt[i, j] >= neg_threshold:
                 break
             neg_f = True
         if neg_f:
-            anchor_labels[i] = 0
+            anchor_labels[i] = -1
 
     # neg_args_ious_anc_gt = np.where(anchor_labels == -1)[0]
 

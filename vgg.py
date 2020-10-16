@@ -16,45 +16,9 @@ class VGG(nn.Module):
         self.cfgs = vgg_cfgs[cfgs]
         self.num_classes = num_classes
         self.conv_layers = make_conv_layers(self.cfgs)
-        self.avg_pool = nn.AdaptiveAvgPool2d((7, 7))
-        self.classifier = nn.Sequential(
-            nn.Linear(512 * 7 * 7, 4096),
-            nn.BatchNorm1d(4096),
-            nn.ReLU(True),
-            # nn.Dropout(),
-            nn.Linear(4096, 4096),
-            nn.BatchNorm1d(4096),
-            nn.ReLU(True),
-            # nn.Dropout(),
-            nn.Linear(4096, num_classes),
-        )
-        # if self.num_classes >= 1000:
-        #     self.classifier = nn.Sequential(
-        #         nn.Linear(512 * 7 * 7, 4096),
-        #         nn.ReLU(),
-        #         nn.Linear(4096, 4096),
-        #         nn.ReLU(),
-        #         nn.Linear(4096, self.num_classes),
-        #         nn.Softmax(),
-        #     )
-        # else:
-        #     self.classifier = nn.Sequential(
-        #         nn.Linear(512 * 7 * 7, 8192),
-        #         nn.ReLU(),
-        #         nn.Linear(8192, 4096),
-        #         nn.ReLU(),
-        #         nn.Linear(4096, 1024),
-        #         nn.ReLU(),
-        #         nn.Linear(1024, self.num_classes),
-        #         nn.Softmax(),
-        #     )
-
 
     def forward(self, x):
         x = self.conv_layers(x)
-        # x = self.avg_pool(x)
-        # x = x.view(x.size(0), -1)
-        # x = self.classifier(x)
 
         return x
 
