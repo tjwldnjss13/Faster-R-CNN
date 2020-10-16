@@ -108,34 +108,6 @@ class FasterRCNN(nn.Module):
         pass
 
 
-def loc_delta_generator(predicted, target):
-    pred = predicted
-    tar = target
-
-    h_pred = pred[:, 2] - pred[:, 0]
-    w_pred = pred[:, 3] - pred[:, 1]
-    cy_pred = pred[:, 0] + .5 + h_pred
-    cx_pred = pred[:, 1] + .5 * w_pred
-
-    h_tar = tar[:, 2] - tar[:, 0]
-    w_tar = tar[:, 3] - tar[:, 1]
-    cy_tar = tar[:, 0] + .5 * h_tar
-    cx_tar = tar[:, 1] + .5 * w_tar
-
-    # eps = np.finfo(h_pred.dtype).eps
-
-    h_pred = np.maximum(0., h_pred)
-    w_pred = np.maximum(0., w_pred)
-
-    dy = (cy_tar - cy_pred) / h_pred
-    dx = (cx_tar - cx_pred) / w_pred
-    dh = np.log(h_tar / h_pred)
-    dw = np.log(w_tar / w_pred)
-
-    loc_deltas = np.vstack((dy, dx, dh, dw)).transpose()
-
-    return loc_deltas
-
 
 if __name__ == '__main__':
     # bbox = np.array([[120, 70, 570, 280], [220, 270, 580, 450], [30, 440, 570, 700]])
