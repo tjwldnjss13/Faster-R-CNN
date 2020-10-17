@@ -148,7 +148,7 @@ def time_calculator(sec):
 
 if __name__ == '__main__':
 
-    from rpn import anchor_box_generator
+    from rpn import anchor_box_generator, anchor_target_generator
     import cv2 as cv
     import matplotlib.pyplot as plt
     import copy

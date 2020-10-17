@@ -32,13 +32,13 @@ class RPN(nn.Module):
         reg = self.reg_layer(x)
         cls = self.cls_layer(x)
 
-        # reg = reg.permute(0, 2, 3, 1).contiguous().view(reg.size(0), -1, 4)
-        # cls = cls.permute(0, 2, 3, 1).contiguous().view(cls.size(0), -1, 2)
+        reg = reg.permute(0, 2, 3, 1).contiguous().view(reg.size(0), -1, 4)
+        cls = cls.permute(0, 2, 3, 1).contiguous().view(cls.size(0), -1, 2)
 
         return reg, cls
 
 
-def reg_loss(predict, target):
+def reg_loss(predict, target, target_score):
     pass
 
 
@@ -97,11 +97,13 @@ def anchor_box_generator(ratios, scales, input_size, anchor_stride):
 
                 anc_i += 1
 
-    idx_valid = np.where((anchor_boxes[:, 0] >= 0) &
-                         (anchor_boxes[:, 1] >= 0) &
-                         (anchor_boxes[:, 2] <= in_h) &
-                         (anchor_boxes[:, 3] <= in_w))[0]
-    anchor_boxes = anchor_boxes[idx_valid]
+    # idx_valid = np.where((anchor_boxes[:, 0] >= 0) &
+    #                      (anchor_boxes[:, 1] >= 0) &
+    #                      (anchor_boxes[:, 2] <= in_h) &
+    #                      (anchor_boxes[:, 3] <= in_w))[0]
+    # anchor_boxes = anchor_boxes[idx_valid]
+
+    print('Anchor boxes generated')
 
     return anchor_boxes
 
@@ -129,6 +131,8 @@ def anchor_target_generator(anchor_boxes, ground_truth, pos_threshold, neg_thres
             anchor_labels[i] = -1
 
     # neg_args_ious_anc_gt = np.where(anchor_labels == -1)[0]
+
+    print('Anchor targets generated')
 
     return anchor_labels
 
@@ -169,19 +173,20 @@ if __name__ == '__main__':
 
     ratios = [.5, 1, 2]
     scales = [128, 256, 512]
-    anchor_boxes = anchor_box_generator(ratios, scales, (600, 1000), 16)
+    in_size = (600, 1000)
+    anchor_boxes = anchor_box_generator(ratios, scales, in_size, 16)
 
     img_pth = 'samples/dogs.jpg'
     img = cv.imread(img_pth)
     img = cv.cvtColor(img, cv.COLOR_BGR2RGB)
     img_h_og, img_w_og, _ = img.shape
-    img = cv.resize(img, (1000, 600))
+    img = cv.resize(img, (in_size[1], in_size[0]))
 
     bbox = np.array([[120, 70, 570, 280], [220, 270, 580, 450], [30, 440, 570, 700]])
-    bbox[:, 0] = bbox[:, 0] * (600 / img_h_og)
-    bbox[:, 1] = bbox[:, 1] * (1000 / img_w_og)
-    bbox[:, 2] = bbox[:, 2] * (600 / img_h_og)
-    bbox[:, 3] = bbox[:, 3] * (1000 / img_w_og)
+    bbox[:, 0] = bbox[:, 0] * (in_size[0] / img_h_og)
+    bbox[:, 1] = bbox[:, 1] * (in_size[1] / img_w_og)
+    bbox[:, 2] = bbox[:, 2] * (in_size[0] / img_h_og)
+    bbox[:, 3] = bbox[:, 3] * (in_size[1] / img_w_og)
 
     img_copy = copy.deepcopy(img)
 
@@ -196,7 +201,3 @@ if __name__ == '__main__':
     plt.figure(figsize=(10, 6))
     plt.imshow(img_copy)
     plt.show()
-
-    # rpn = RPN(512, 256, (60, 40), 9).cuda()
-    # from torchsummary import summary
-    # summary(rpn, (512, 60, 40))
