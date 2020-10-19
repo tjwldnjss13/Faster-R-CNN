@@ -25,6 +25,7 @@ class RPN(nn.Module):
         # self.cls_layer = nn.Linear(out_dim * self.in_size[0] * self.in_size[1], n_anchor * 2)
         self.cls_layer.weight.data.normal_(0, .01)
         self.cls_layer.bias.data.zero_()
+        self.log_softmax = nn.LogSoftmax(dim=2)
 
     def forward(self, x):
         x = self.conv(x)
@@ -34,6 +35,7 @@ class RPN(nn.Module):
 
         reg = reg.permute(0, 2, 3, 1).contiguous().view(reg.size(0), -1, 4)
         cls = cls.permute(0, 2, 3, 1).contiguous().view(cls.size(0), -1, 2)
+        cls = self.log_softmax(cls).exp()
 
         return reg, cls
 
@@ -51,6 +53,8 @@ def anchor_generator(feature_size, anchor_stride):
             anchors[c_i, 1] = x - feat_w // 2
             anchors[c_i, 0] = y - feat_h // 2
             c_i += 1
+
+    print('Anchors generated')
 
     return anchors
 
@@ -132,6 +136,8 @@ def anchor_label_generatgor_2dim(anchor_labels):
     anchor_labels2 = np.zeros((anchor_labels.shape[0], 2))
     train_args = np.where(anchor_labels != -1)
     anchor_labels2[train_args, anchor_labels[train_args]] = 1
+
+    print('2-dim anchor labels generated')
 
     return anchor_labels2
 

@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torchvision.transforms as transforms
+import matplotlib.pyplot as plt
 
 import model
 from model import FasterRCNN
@@ -12,9 +13,9 @@ from torchsummary import summary
 
 if __name__ == '__main__':
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-    learning_rate = .001
+    learning_rate = .00001
     batch_size = 64
-    epoch = 10
+    epoch = 100
 
     # Train sample image
     import numpy as np
@@ -39,38 +40,73 @@ if __name__ == '__main__':
     gt_numpy = gt
     gt = torch.from_numpy(gt)
 
-    train_data_loader = (img, gt)
-
     faster_rcnn_model = FasterRCNN(in_size, 3).to(device)
 
     ratios = [.5, 1, 2]
     scales = [128, 256, 512]
     anchor_boxes = anchor_box_generator(ratios, scales, in_size, 16)
+    idx_valid_ = np.where((anchor_boxes[:, 0] >= 0) &
+                                 (anchor_boxes[:, 1] >= 0) &
+                                 (anchor_boxes[:, 2] <= in_size[0]) &
+                                 (anchor_boxes[:, 3] <= in_size[1]))[0]
+    # anchor_boxes = anchor_boxes[idx_valid]
     anchor_labels_ = anchor_label_generator(anchor_boxes, gt_numpy, .7, .3)
     anchor_labels2_ = anchor_label_generatgor_2dim(anchor_labels_)
     anchor_gts_ = anchor_ground_truth_generator(anchor_boxes, gt)
     anchor_gts_ = loc_delta_generator(anchor_gts_, anchor_boxes)
 
-    anchor_labels = torch.Tensor(anchor_labels_).to(device)
-    anchor_labels2 = torch.Tensor(anchor_labels2_).to(device)
-    anchor_gts = torch.Tensor(anchor_gts_).to(device)
+    idx_valid = torch.LongTensor(idx_valid_).to(device)
+    anchor_labels_ = torch.Tensor(anchor_labels_).to(device)
+    anchor_labels2_ = torch.Tensor(anchor_labels2_).to(device)
+    anchor_gts_ = torch.Tensor(anchor_gts_).to(device)
 
+    anchor_labels = anchor_labels_[idx_valid]
+    anchor_labels2 = anchor_labels2_[idx_valid]
+    anchor_gts = anchor_gts_[idx_valid]
+
+    del gt
+    del idx_valid_
     del anchor_labels_
     del anchor_labels2_
     del anchor_gts_
 
+    backbone = faster_rcnn_model.backbone
+    rpn = faster_rcnn_model.rpn
+    rpn_optimizer = optim.SGD(rpn.parameters(), lr=learning_rate)
+
+    # reg_losses, cls_losses = [], []
+
     for e in range(epoch):
+        print('[{}/{}] '.format(e + 1, epoch), end='')
+
+        rpn_optimizer.zero_grad()
         backbone_feature = faster_rcnn_model.backbone(img)
-        reg, cls = faster_rcnn_model.rpn(backbone_feature)
-        print(reg.shape, cls.shape)
+        reg, cls = rpn(backbone_feature)
+        print(cls)
 
-        n_reg, reg_loss = rpn_reg_loss(reg, anchor_gts, anchor_labels)
-        print(n_reg, reg_loss)
-        cls_loss = rpn_cls_loss(cls, anchor_labels2, anchor_labels)
+        n_reg, reg_loss = rpn_reg_loss(reg[:, idx_valid], anchor_gts, anchor_labels)
+        n_cls, cls_loss = rpn_cls_loss(cls[:, idx_valid], anchor_labels2, anchor_labels)
+
+        lambda_ = n_reg / n_cls
+        # reg_loss.backward(retain_graph=True)
+        # cls_loss.backward(retain_graph=True)
+        loss = cls_loss + lambda_ * reg_loss
+        loss.backward(retain_graph=True)
+        rpn_optimizer.step()
+
+        # reg_losses.append(reg_loss)
+        # cls_losses.append(cls_loss)
+
+        print('<loss> {} <reg_loss> {} <cls_loss> {}'.format(loss, reg_loss, cls_loss))
+
+    # plt.figure(0)
+    # plt.title('Reg/Cls Loss')
+    # plt.plot([i for i in range(epoch)], reg_loss, label='Reg')
+    # plt.plot([i for i in range(epoch)], cls_loss, label='Cls')
+    # plt.legend()
+    # plt.show()
 
 
-
-        break
 
         # for i, data in enumerate(train_data_loader):
         # backbone_feature = faster_rcnn_model.backbone(image)
@@ -78,7 +114,6 @@ if __name__ == '__main__':
 
     # # Visualize
     # import copy
-    # import matplotlib.pyplot as plt
 
     # img_copy = copy.deepcopy(img_numpy)
 
