@@ -5,7 +5,9 @@ import torchvision.transforms as transforms
 
 import model
 from model import FasterRCNN
-from rpn import anchor_box_generator, anchor_target_generator
+from rpn import anchor_box_generator, anchor_label_generator, anchor_label_generatgor_2dim, \
+                anchor_ground_truth_generator, loc_delta_generator
+from loss import rpn_reg_loss, rpn_cls_loss
 from torchsummary import summary
 
 if __name__ == '__main__':
@@ -29,28 +31,43 @@ if __name__ == '__main__':
     img = torch.FloatTensor(img_numpy)
     img = img.permute(2, 0, 1).unsqueeze(0).to(device)
 
-    bbox = np.array([[120, 70, 570, 280], [220, 270, 580, 450], [30, 440, 570, 700]])
-    bbox[:, 0] = bbox[:, 0] * (in_size[0] / img_h_og)
-    bbox[:, 1] = bbox[:, 1] * (in_size[1] / img_w_og)
-    bbox[:, 2] = bbox[:, 2] * (in_size[0] / img_h_og)
-    bbox[:, 3] = bbox[:, 3] * (in_size[1] / img_w_og)
-    bbox_numpy = bbox
-    bbox = torch.from_numpy(bbox)
+    gt = np.array([[120, 70, 570, 280], [220, 270, 580, 450], [30, 440, 570, 700]])
+    gt[:, 0] = gt[:, 0] * (in_size[0] / img_h_og)
+    gt[:, 1] = gt[:, 1] * (in_size[1] / img_w_og)
+    gt[:, 2] = gt[:, 2] * (in_size[0] / img_h_og)
+    gt[:, 3] = gt[:, 3] * (in_size[1] / img_w_og)
+    gt_numpy = gt
+    gt = torch.from_numpy(gt)
 
-    train_data_loader = (img, bbox)
+    train_data_loader = (img, gt)
 
     faster_rcnn_model = FasterRCNN(in_size, 3).to(device)
 
     ratios = [.5, 1, 2]
     scales = [128, 256, 512]
     anchor_boxes = anchor_box_generator(ratios, scales, in_size, 16)
-    anchor_labels = anchor_target_generator(anchor_boxes, bbox_numpy, .7, .3)
+    anchor_labels_ = anchor_label_generator(anchor_boxes, gt_numpy, .7, .3)
+    anchor_labels2_ = anchor_label_generatgor_2dim(anchor_labels_)
+    anchor_gts_ = anchor_ground_truth_generator(anchor_boxes, gt)
+    anchor_gts_ = loc_delta_generator(anchor_gts_, anchor_boxes)
 
+    anchor_labels = torch.Tensor(anchor_labels_).to(device)
+    anchor_labels2 = torch.Tensor(anchor_labels2_).to(device)
+    anchor_gts = torch.Tensor(anchor_gts_).to(device)
 
+    del anchor_labels_
+    del anchor_labels2_
+    del anchor_gts_
 
     for e in range(epoch):
         backbone_feature = faster_rcnn_model.backbone(img)
         reg, cls = faster_rcnn_model.rpn(backbone_feature)
+        print(reg.shape, cls.shape)
+
+        n_reg, reg_loss = rpn_reg_loss(reg, anchor_gts, anchor_labels)
+        print(n_reg, reg_loss)
+        cls_loss = rpn_cls_loss(cls, anchor_labels2, anchor_labels)
+
 
 
         break

@@ -1,3 +1,5 @@
 import torch
 
-print(torch.cuda.is_available())
+from loss import smooth_l1_pytorch
+
+print(torch.log(torch.Tensor([10])))
