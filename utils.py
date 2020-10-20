@@ -105,31 +105,8 @@ def mean_iou_segmentation(output, predict):
     return iou
 
 
-
-
-
-# def nms(boxes, ground_truth, threshold):
-#     n_gt = len(ground_truth)
-#     ious_gt = calculate_ious(boxes, ground_truth)
-#
-#     max_iou_gt_args = [np.argmax(ious_gt[:, i]) for i in range(n_gt)]
-#
-#     boxes_result = []
-#
-#     for i in range(n_gt):
-#         max_iou_gt_arg = max_iou_gt_args[i]
-#         max_iou_gt_box = boxes[max_iou_gt_arg]
-#
-#
-#
-#
-#         # for j, box in enumerate(boxes):
-#         #     if i != j:
-#         #         iou = calculate_iou(max_iou_gt_box, box)
-#         #         if iou >= threshold:
-#         #             boxes_result.append()
-
-
+def nms(anchor_boxes, ground_truth, score, iou_threshold):
+    
 
 
 def time_calculator(sec):

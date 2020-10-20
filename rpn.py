@@ -25,7 +25,7 @@ class RPN(nn.Module):
         # self.cls_layer = nn.Linear(out_dim * self.in_size[0] * self.in_size[1], n_anchor * 2)
         self.cls_layer.weight.data.normal_(0, .01)
         self.cls_layer.bias.data.zero_()
-        self.log_softmax = nn.LogSoftmax(dim=2)
+        self.softmax = nn.Softmax(dim=2)
 
     def forward(self, x):
         x = self.conv(x)
@@ -35,7 +35,7 @@ class RPN(nn.Module):
 
         reg = reg.permute(0, 2, 3, 1).contiguous().view(reg.size(0), -1, 4)
         cls = cls.permute(0, 2, 3, 1).contiguous().view(cls.size(0), -1, 2)
-        cls = self.log_softmax(cls).exp()
+        cls = self.softmax(cls)
 
         return reg, cls
 
