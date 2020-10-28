@@ -103,6 +103,26 @@ def anchor_box_generator(ratios, scales, input_size, anchor_stride):
     return anchor_boxes
 
 
+def anchor_boxes_generator_categorical(anchor_boxes, ground_truth):
+    n_gt = ground_truth.shape[0]
+    ious_anc_gt = calculate_ious(anchor_boxes, ground_truth)
+    argmax_iou_anc_gt = np.argmax(ious_anc_gt, axis=1)
+
+    anchor_boxes_cat = [[] for _ in range(n_gt)]
+    for i, arg in enumerate(argmax_iou_anc_gt):
+        anchor_boxes_cat[arg].append(anchor_boxes[i])
+
+    # anchor_gts = ground_truth[argmax_iou_anc_gt]
+
+    for i in range(n_gt):
+        anchor_boxes_cat[i] = np.array(anchor_boxes_cat[i])
+    # anchor_boxes_cat = np.array(anchor_boxes_cat)
+
+    print('Categorical anchor boxes generated')
+
+    return anchor_boxes_cat
+
+
 def anchor_label_generator(anchor_boxes, ground_truth, pos_threshold, neg_threshold):
     ious_anc_gt = calculate_ious(anchor_boxes, ground_truth)
 

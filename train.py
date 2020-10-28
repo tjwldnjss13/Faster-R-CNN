@@ -27,7 +27,7 @@ if __name__ == '__main__':
     img = cv.imread(img_pth)
     img = cv.cvtColor(img, cv.COLOR_BGR2RGB)
     img_h_og, img_w_og = img.shape[0], img.shape[1]
-    img = cv.resize(img, (in_size[1], in_size[0]), interpolation=cv.INTER_CUBIC)
+    img_cv = cv.resize(img, (in_size[1], in_size[0]), interpolation=cv.INTER_CUBIC)
     img_numpy = np.asarray(img)
     img = torch.FloatTensor(img_numpy)
     img = img.permute(2, 0, 1).unsqueeze(0).to(device)
@@ -70,34 +70,48 @@ if __name__ == '__main__':
     del anchor_labels2_
     del anchor_gts_
 
-    backbone = faster_rcnn_model.backbone
-    rpn = faster_rcnn_model.rpn
-    rpn_optimizer = optim.SGD(rpn.parameters(), lr=learning_rate)
+    ###########################################
 
-    # reg_losses, cls_losses = [], []
+    for gt in anchor_gts:
+        y1, x1, y2, x2 = int(gt[0]), int(gt[1]), int(gt[2]), int(gt[3])
+        cv.rectangle(img_cv, (x1, y1), (x2, y2), (0, 0, 255), 3)
 
-    for e in range(epoch):
-        print('[{}/{}] '.format(e + 1, epoch), end='')
+    plt.imshow(img_cv)
+    plt.show()
 
-        rpn_optimizer.zero_grad()
-        backbone_feature = faster_rcnn_model.backbone(img)
-        reg, cls = rpn(backbone_feature)
-        print(cls)
 
-        n_reg, reg_loss = rpn_reg_loss(reg[:, idx_valid], anchor_gts, anchor_labels)
-        n_cls, cls_loss = rpn_cls_loss(cls[:, idx_valid], anchor_labels2, anchor_labels)
+    ###########################################
 
-        lambda_ = n_reg / n_cls
-        # reg_loss.backward(retain_graph=True)
-        # cls_loss.backward(retain_graph=True)
-        loss = cls_loss + lambda_ * reg_loss
-        loss.backward(retain_graph=True)
-        rpn_optimizer.step()
+    ########## For Real Training ##########
 
-        # reg_losses.append(reg_loss)
-        # cls_losses.append(cls_loss)
-
-        print('<loss> {} <reg_loss> {} <cls_loss> {}'.format(loss, reg_loss, cls_loss))
+    # backbone = faster_rcnn_model.backbone
+    # rpn = faster_rcnn_model.rpn
+    # rpn_optimizer = optim.SGD(rpn.parameters(), lr=learning_rate)
+    #
+    # # reg_losses, cls_losses = [], []
+    #
+    # for e in range(epoch):
+    #     print('[{}/{}] '.format(e + 1, epoch), end='')
+    #
+    #     rpn_optimizer.zero_grad()
+    #     backbone_feature = faster_rcnn_model.backbone(img)
+    #     reg, cls = rpn(backbone_feature)
+    #     print(cls)
+    #
+    #     n_reg, reg_loss = rpn_reg_loss(reg[:, idx_valid], anchor_gts, anchor_labels)
+    #     n_cls, cls_loss = rpn_cls_loss(cls[:, idx_valid], anchor_labels2, anchor_labels)
+    #
+    #     lambda_ = n_reg / n_cls
+    #     # reg_loss.backward(retain_graph=True)
+    #     # cls_loss.backward(retain_graph=True)
+    #     loss = cls_loss + lambda_ * reg_loss
+    #     loss.backward(retain_graph=True)
+    #     rpn_optimizer.step()
+    #
+    #     # reg_losses.append(reg_loss)
+    #     # cls_losses.append(cls_loss)
+    #
+    #     print('<loss> {} <reg_loss> {} <cls_loss> {}'.format(loss, reg_loss, cls_loss))
 
     # plt.figure(0)
     # plt.title('Reg/Cls Loss')
@@ -112,7 +126,7 @@ if __name__ == '__main__':
         # backbone_feature = faster_rcnn_model.backbone(image)
         # reg, cls = faster_rcnn_model.rpn(backbone_feature)
 
-    # # Visualize
+    ########## Visualize ##########
     # import copy
 
     # img_copy = copy.deepcopy(img_numpy)
