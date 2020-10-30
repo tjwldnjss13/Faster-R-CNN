@@ -23,7 +23,7 @@ train_data_loader = DataLoader(dset_train, batch_size=batch_size, shuffle=True, 
 val_data_loader = DataLoader(dset_val, batch_size=batch_size, shuffle=True, collate_fn=collate_fn)
 
 for i, (images, anns) in enumerate(train_data_loader):
-    # label = anns[0]['category_id']
+    label = anns[0]['category_id']
     print(anns)
 
     if i > 5:
