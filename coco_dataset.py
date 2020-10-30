@@ -25,7 +25,7 @@ class COCODataset(data.Dataset):
         ann = coco.loadAnns(ann_ids)
         img = coco.loadImgs(img_id)[0]
         img_path = img['file_name']
-        img_return = Image.open(os.path.join(self.root, img_path)).convert('RGB')
+        img = Image.open(os.path.join(self.root, img_path)).convert('RGB')
 
         num_objs = len(ann)
 
@@ -93,8 +93,25 @@ def to_categorical(labels, n_label):
 
 
 def collate_fn(batch):
-    data = [item[0] for item in batch]
-    target = [item[1] for item in batch]
-    # print('data: ', data)
-    # print('target: ', target)
-    return [data, target]
+    images = [item[0] for item in batch]
+    targets = [item[1] for item in batch]
+
+    return [images, targets]
+
+
+def collate_fn_reg_cls(batch):
+    images_ = [item[0] for item in batch]
+    anns_ = [item[1] for item in batch]
+
+    images = images_[0].unsqueeze(0)
+    bboxes = anns_[0]['bbox'] if anns_[0]['bbox'].shape[0] == 1 else anns_[0]['bbox'][0].unsqueeze(0)
+    labels = anns_[0]['category_id']
+
+    for i in range(1, len(images_)):
+        temp_image = images_[i].unsqueeze(0)
+        images = torch.cat([images, temp_image], dim=0)
+
+        temp_bbox = anns_[0]['bbox'] if anns_[0]['bbox'].shape[0] == 1 else anns_[0]['bbox'][0].unsqueeze(0)
+        torch.cat([bboxes, temp_bbox], dim=0)
+
+    return [images, bboxes]
